@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Suno Studio</title>
+  <meta name="description" content="Write, generate, remix and master AI songs with your SunoAPI key." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#0d0b14" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("ss.theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ============ KEY GATE ============ -->
+  <section id="gate" class="gate" hidden>
+    <div class="gate-glow" aria-hidden="true"></div>
+    <div class="gate-inner">
+      <div class="brand brand-lg"><span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Suno Studio</div>
+      <h1 class="gate-title">Turn a sentence<br />into a <span class="grad">song.</span></h1>
+      <p class="gate-sub">Write it, generate it, remix it, split it into stems, and walk away with a WAV, MIDI and a music video — all from your SunoAPI key.</p>
+
+      <form id="gateForm" class="gate-card" autocomplete="off">
+        <label for="gateKey" class="label">Your SunoAPI key</label>
+        <div class="key-row">
+          <input id="gateKey" type="password" placeholder="Paste your API key" spellcheck="false" required />
+          <button type="button" class="icon-btn" id="gateReveal" aria-label="Show key" title="Show key">👁</button>
+        </div>
+        <label class="check"><input type="checkbox" id="gateRemember" checked /> Remember on this device</label>
+        <button class="btn btn-primary btn-lg" type="submit" id="gateSubmit">Unlock the studio</button>
+        <p class="gate-err" id="gateErr" role="alert"></p>
+        <p class="fine">No key? Get one at <a href="https://sunoapi.org/api-key" target="_blank" rel="noopener">sunoapi.org/api-key</a>. Your key stays in this browser and is only sent to SunoAPI.</p>
+      </form>
+
+      <ol class="journey">
+        <li><b>1</b><span>Describe a vibe — or write every line yourself</span></li>
+        <li><b>2</b><span>Get two takes in about a minute</span></li>
+        <li><b>3</b><span>Extend, cover, remix, split stems, export</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ APP ============ -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="brand-name">Suno Studio</span></div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-view="create" class="tab">✦ Create</button>
+        <button role="tab" data-view="studio" class="tab">⚙ Remix</button>
+        <button role="tab" data-view="sounds" class="tab">◎ Sounds</button>
+        <button role="tab" data-view="library" class="tab">♫ Library <span class="count" id="libCount"></span></button>
+      </nav>
+      <div class="top-actions">
+        <button class="credits" id="creditsBtn" title="Remaining credits — click to refresh"><span class="dot"></span><span id="credits">—</span><small>credits</small></button>
+        <div class="seg theme-seg" role="radiogroup" aria-label="Theme">
+          <button data-theme-set="light" title="Light" aria-label="Light theme">☀</button>
+          <button data-theme-set="system" title="System" aria-label="System theme">◐</button>
+          <button data-theme-set="dark" title="Dark" aria-label="Dark theme">☾</button>
+        </div>
+        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="view" id="view-create"></section>
+      <section class="view" id="view-studio"></section>
+      <section class="view" id="view-sounds"></section>
+      <section class="view" id="view-library"></section>
+    </main>
+
+    <!-- Lyrics / karaoke panel -->
+    <section class="karaoke" id="karaoke" hidden>
+      <div class="karaoke-head"><span id="karaokeTitle">Lyrics</span><button class="icon-btn" id="karaokeClose" aria-label="Close lyrics">✕</button></div>
+      <div class="karaoke-body" id="karaokeBody"></div>
+    </section>
+
+    <!-- Player -->
+    <footer class="player" id="player" hidden>
+      <div class="p-track">
+        <img id="pArt" alt="" />
+        <div class="p-meta"><b id="pTitle"></b><span id="pTags"></span></div>
+      </div>
+      <div class="p-center">
+        <div class="p-controls">
+          <button class="icon-btn" id="pPrev" aria-label="Previous">⏮</button>
+          <button class="play-btn" id="pPlay" aria-label="Play">▶</button>
+          <button class="icon-btn" id="pNext" aria-label="Next">⏭</button>
+        </div>
+        <div class="p-seek">
+          <span id="pCur">0:00</span>
+          <input type="range" id="pSeek" min="0" max="1000" value="0" aria-label="Seek" />
+          <span id="pDur">0:00</span>
+        </div>
+      </div>
+      <div class="p-right">
+        <div class="eq" id="pEq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <button class="icon-btn" id="pLyrics" title="Lyrics" aria-label="Lyrics">❝</button>
+        <button class="icon-btn" id="pOpen" title="Track details" aria-label="Track details">⋯</button>
+        <input type="range" id="pVol" min="0" max="1" step="0.01" value="0.9" aria-label="Volume" />
+      </div>
+      <audio id="audio" preload="none"></audio>
+    </footer>
+
+    <!-- Track drawer -->
+    <div class="scrim" id="scrim" hidden></div>
+    <aside class="drawer" id="drawer" aria-hidden="true" tabindex="-1"></aside>
+
+    <!-- Modals -->
+    <dialog id="modal" class="modal"></dialog>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
